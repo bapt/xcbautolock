@@ -120,6 +120,9 @@ main(int argc, char **argv)
 		case 't':
 			time = parse_time(optarg);
 			break;
+		default:
+			fprintf(stderr, "xcbautolock [-t duration] <command>\n");
+			exit(1);
 		}
 	}
 	argc -= optind;
