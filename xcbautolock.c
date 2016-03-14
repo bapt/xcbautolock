@@ -77,13 +77,13 @@ parse_time(const char *time)
 static void
 do_lock(int argc, char **argv)
 {
-	int error, pstat;
+	int error, i, pstat;
 	pid_t pid;
 
 	error = posix_spawnp(&pid, argv[0], NULL, NULL, argv, environ);
 	if (error != 0) {
 		fprintf(stderr, "Cannot run: '");
-		for (int i = 0; i < argc; i++) {
+		for (i = 0; i < argc; i++) {
 			fprintf(stderr, "%s%s", i == 0 ? "" : " ", argv[i]);
 		}
 		fprintf(stderr, "': %s\n", strerror(error));
