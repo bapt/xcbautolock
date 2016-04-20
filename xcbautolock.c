@@ -113,14 +113,18 @@ main(int argc, char **argv)
 	xcb_intern_atom_reply_t *atom;
 	const xcb_setup_t * xcb_setup;
 	int error = EXIT_SUCCESS;
+	bool no_daemonize = false;
 
 	/* Default on 1min */
 	time = 6000;
 
-	while ((ch = getopt(argc, argv, "t:")) != -1) {
+	while ((ch = getopt(argc, argv, "ft:")) != -1) {
 		switch (ch) {
 		case 't':
 			time = parse_time(optarg);
+			break;
+		case 'f':
+			no_daemonize = true;
 			break;
 		default:
 			fprintf(stderr, "xcbautolock [-t duration] <command>\n");
@@ -160,11 +164,12 @@ main(int argc, char **argv)
 		}
 	}
 	free(preply);
-	if (daemon(1, 0) == -1) {
-		error = EXIT_FAILURE;
-		warn("Fail to daemonize");
-		goto disconnect;
-	}
+	if (!no_daemonize)
+		if (daemon(1, 0) == -1) {
+			error = EXIT_FAILURE;
+			warn("Fail to daemonize");
+			goto disconnect;
+		}
 
 	pid = getpid();
 	xcb_change_property(conn, XCB_PROP_MODE_REPLACE, screen->root,
