@@ -111,6 +111,8 @@ main(int argc, char **argv)
 	xcb_screensaver_query_info_cookie_t cookie;
 	xcb_screensaver_query_info_reply_t *reply;
 	xcb_intern_atom_reply_t *atom;
+	const xcb_setup_t * xcb_setup;
+	int error = EXIT_SUCCESS;
 
 	/* Default on 1min */
 	time = 6000;
@@ -134,7 +136,13 @@ main(int argc, char **argv)
 	conn = xcb_connect(NULL, NULL);
 	if (conn == NULL)
 		errx(EXIT_FAILURE, "Not able to connect to the X session");
-	screen = xcb_setup_roots_iterator(xcb_get_setup(conn)).data;
+	xcb_setup = xcb_get_setup(conn);
+	if (xcb_setup == NULL) {
+		warnx("Not able to setup X connection");
+		error = EXIT_FAILURE;
+		goto disconnect;
+	}
+	screen = xcb_setup_roots_iterator(xcb_setup).data;
 	atom = xcb_intern_atom_reply(conn,
 	    xcb_intern_atom(conn, 0, sizeof("XLOCKER_PID"), "XLOCKER_PID"),
 	    0);
@@ -144,12 +152,18 @@ main(int argc, char **argv)
 	if (preply->type == XCB_ATOM_INTEGER) {
 		memcpy(&pid, xcb_get_property_value(preply),
 			xcb_get_property_value_length(preply));
-		if (pid > 0 && !kill(pid, 0))
-			errx(EXIT_FAILURE, "Find running pid: %d\n", (int)pid);
+		if (pid > 0 && !kill(pid, 0)) {
+			error = EXIT_FAILURE;
+			warnx("Find running pid: %d\n", (int)pid);
+			goto disconnect;
+		}
 	}
 	free(preply);
-	if (daemon(1, 0) == -1)
-		err(EXIT_FAILURE, "Fail to daemonize");
+	if (daemon(1, 0) == -1) {
+		error = EXIT_FAILURE;
+		warn("Fail to daemonize");
+		goto disconnect;
+	}
 
 	pid = getpid();
 	xcb_change_property(conn, XCB_PROP_MODE_REPLACE, screen->root,
@@ -167,7 +181,8 @@ main(int argc, char **argv)
 		free(reply);
 	}
 
+disconnect:
 	xcb_disconnect(conn);
 
-	return (0);
+	return error;
 }
