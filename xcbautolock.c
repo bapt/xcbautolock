@@ -153,6 +153,7 @@ main(int argc, char **argv)
 		memcpy(&pid, xcb_get_property_value(preply),
 			xcb_get_property_value_length(preply));
 		if (pid > 0 && !kill(pid, 0)) {
+			free(preply);
 			error = EXIT_FAILURE;
 			warnx("Find running pid: %d\n", (int)pid);
 			goto disconnect;
