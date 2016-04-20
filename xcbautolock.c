@@ -174,9 +174,10 @@ main(int argc, char **argv)
 		sleep(1);
 		cookie = xcb_screensaver_query_info(conn, screen->root);
 		reply = xcb_screensaver_query_info_reply(conn, cookie, NULL);
-		if (reply->state == XCB_SCREENSAVER_STATE_DISABLED)
+		if (reply->state == XCB_SCREENSAVER_STATE_DISABLED) {
 			free(reply);
 			continue;
+		}
 		if (reply->ms_since_user_input > time)
 			do_lock(argc, argv);
 		free(reply);
