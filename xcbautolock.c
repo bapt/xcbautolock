@@ -116,7 +116,7 @@ main(int argc, char **argv)
 	bool no_daemonize = false;
 
 	/* Default on 1min */
-	time = 6000;
+	time = 60000;
 
 	while ((ch = getopt(argc, argv, "ft:")) != -1) {
 		switch (ch) {
