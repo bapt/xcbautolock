@@ -31,6 +31,7 @@
 #include <err.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <poll.h>
 #include <signal.h>
 #include <spawn.h>
 #include <stdbool.h>
@@ -102,18 +103,22 @@ do_lock(int argc, char **argv)
 int
 main(int argc, char **argv)
 {
-	int ch, time;
+	int ch, time, timeout, screensaver_response_type = -1;
 	pid_t pid;
 	xcb_connection_t *conn;
 	xcb_screen_t *screen;
 	xcb_get_property_cookie_t pcookie;
 	xcb_get_property_reply_t *preply;
+	xcb_generic_event_t *event;
+	const xcb_query_extension_reply_t *reply_screensaver;
 	xcb_screensaver_query_info_cookie_t cookie;
 	xcb_screensaver_query_info_reply_t *reply;
+	xcb_screensaver_notify_event_t *ev;
 	xcb_intern_atom_reply_t *atom;
 	const xcb_setup_t * xcb_setup;
 	int error = EXIT_SUCCESS;
-	bool no_daemonize = false;
+	bool no_daemonize = false, forced = false;
+	struct pollfd pfds[1];
 
 	/* Default on 1min */
 	time = 60000;
@@ -175,17 +180,41 @@ main(int argc, char **argv)
 	xcb_change_property(conn, XCB_PROP_MODE_REPLACE, screen->root,
 	    atom->atom, XCB_ATOM_INTEGER, 32, 1, &pid);
 
+	pfds[0].fd = xcb_get_file_descriptor(conn);
+	pfds[0].events = POLLIN;
+
+	/* Register for 'xset s' events */
+	xcb_screensaver_select_input(conn, screen->root, XCB_SCREENSAVER_EVENT_NOTIFY_MASK);
+
+	reply_screensaver = xcb_get_extension_data(conn, &xcb_screensaver_id);
+	if (reply_screensaver)
+		screensaver_response_type = reply_screensaver->first_event + XCB_SCREENSAVER_NOTIFY;
+
 	for (;;) {
-		sleep(1);
 		cookie = xcb_screensaver_query_info(conn, screen->root);
 		reply = xcb_screensaver_query_info_reply(conn, cookie, NULL);
-		if (reply->state == XCB_SCREENSAVER_STATE_DISABLED) {
-			free(reply);
-			continue;
+		if (reply->state != XCB_SCREENSAVER_STATE_DISABLED || forced) {
+			timeout = time - reply->ms_since_user_input;
+			if ((reply->ms_since_user_input > time) || forced){
+				do_lock(argc, argv);
+				timeout = time;
+				forced = false;
+			}
 		}
-		if (reply->ms_since_user_input > time)
-			do_lock(argc, argv);
 		free(reply);
+
+		poll(pfds, 1, timeout);
+		if (pfds[0].revents & POLLIN) {
+			event = xcb_poll_for_event (conn);
+			if (event) {
+				if ((event->response_type & ~0x80) == screensaver_response_type) {
+					ev = (xcb_screensaver_notify_event_t *)event;
+					if (ev-> forced == XCB_SCREENSAVER_STATE_ON) {
+						forced = true;
+					}
+				}
+			}
+		}
 	}
 
 disconnect:
