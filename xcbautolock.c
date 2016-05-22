@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2015 Baptiste Daroussin <bapt@FreeBSD.org>
+ * Copyright (c) 2015-2016 Baptiste Daroussin <bapt@FreeBSD.org>
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -117,7 +117,7 @@ main(int argc, char **argv)
 	xcb_intern_atom_reply_t *atom;
 	const xcb_setup_t * xcb_setup;
 	int error = EXIT_SUCCESS;
-	bool no_daemonize = false, forced = false;
+	bool no_daemonize = false, forced = false, justunlocked = false;
 	struct pollfd pfds[1];
 
 	/* Default on 1min */
@@ -199,6 +199,7 @@ main(int argc, char **argv)
 				do_lock(argc, argv);
 				timeout = time;
 				forced = false;
+				justunlocked = true;
 			}
 		}
 		free(reply);
@@ -209,11 +210,12 @@ main(int argc, char **argv)
 			if (event) {
 				if ((event->response_type & ~0x80) == screensaver_response_type) {
 					ev = (xcb_screensaver_notify_event_t *)event;
-					if (ev-> forced == XCB_SCREENSAVER_STATE_ON) {
+					if (ev->state == XCB_SCREENSAVER_STATE_ON && !justunlocked) {
 						forced = true;
 					}
 				}
 			}
+			justunlocked = false;
 		}
 	}
 
