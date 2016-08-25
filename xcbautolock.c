@@ -190,22 +190,6 @@ main(int argc, char **argv)
 	if (reply_screensaver)
 		screensaver_response_type = reply_screensaver->first_event + XCB_SCREENSAVER_NOTIFY;
 
-	/* Create a window so we can register as external screensaver */
-	xcb_window_t window = xcb_generate_id (conn);
-	xcb_create_window (conn,               /* Connection          */
-		XCB_COPY_FROM_PARENT,          /* depth (same as root)*/
-		window,                        /* window Id           */
-		screen->root,                  /* parent window       */
-		0, 0,                          /* x, y                */
-		1, 1,                          /* width, height       */
-		0,                             /* border_width        */
-		XCB_WINDOW_CLASS_INPUT_OUTPUT, /* class               */
-		screen->root_visual,           /* visual              */
-		0, NULL );                     /* masks, not used yet */
-
-	//xcb_map_window (conn, window);
-	/* Do NOT map on the screen */
-
 	xcb_screensaver_set_attributes(conn,   /* Connection          */
 		screen->root,                  /* window              */
 		-1, -1,                        /* x, y                */
