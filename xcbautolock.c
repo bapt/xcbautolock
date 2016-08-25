@@ -132,7 +132,7 @@ main(int argc, char **argv)
 			no_daemonize = true;
 			break;
 		default:
-			fprintf(stderr, "xcbautolock [-t duration] <command>\n");
+			fprintf(stderr, "xcbautolock [-f] [-t duration] <command>\n");
 			exit(1);
 		}
 	}
