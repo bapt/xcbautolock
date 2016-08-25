@@ -19,7 +19,7 @@ $(PROG): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $(OBJS)
 
 $(MAN).gz: $(MAN)
-	gzip -kn $(MAN)
+	gzip -fkn $(MAN)
 
 clean:
 	rm -f $(PROG) *.o *.gz
